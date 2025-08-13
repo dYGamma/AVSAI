@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: anime-backend
+    restart: unless-stopped
+    env_file: ./backend/.env
+    networks:
+      - anime-net
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:5.0
+    container_name: anime-mongo
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - anime-net
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: anime-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - anime-net
+
+  nginx:
+    build: ./nginx
+    container_name: anime-nginx
+    restart: unless-stopped
+    ports:
+      # ИЗМЕНЕНИЕ: Публикуем на порту 3600
+      - "3600:80"
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - anime-net
+
+networks:
+  anime-net:
+    driver: bridge
+
+volumes:
+  mongo-data:

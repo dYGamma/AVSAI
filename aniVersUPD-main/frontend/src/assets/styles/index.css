@@ -1,0 +1,24 @@
+/* /anime-app/frontend/src/assets/styles/index.css (ИСПРАВЛЕННАЯ ВЕРСИЯ) */
+
+/* Подключаем базовые слои Tailwind CSS */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Добавляем кастомную утилиту для обрезки текста на нескольких строках */
+@layer utilities {
+  .clamp-3 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+}
+
+/* Применяем базовые стили к body */
+body {
+  background-color: #111827; /* gray-900 */
+  color: #f9fafb; /* gray-50 */
+  font-family: 'Inter', sans-serif;
+}
+

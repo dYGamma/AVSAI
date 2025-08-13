@@ -1,0 +1,45 @@
+# Используем официальный образ Node.js 18-й версии
+FROM node:18-alpine
+
+# Устанавливаем рабочую директорию внутри контейнера
+WORKDIR /app
+
+# Копируем package.json и package-lock.json для установки зависимостей
+COPY package*.json ./
+
+# Устанавливаем зависимости, указанные в package.json
+RUN npm install
+
+# Копируем весь остальной исходный код нашего приложения в рабочую директорию
+COPY . .
+
+# Сообщаем Docker, что контейнер будет слушать порт 5001
+EXPOSE 5001
+
+# Команда, которая будет выполняться при запуске контейнера
+CMD ["npm", "start"]
+```javascript
+// /anime-app/backend/models/user.model.js
+// (Этот файл без изменений)
+const { Schema, model } = require('mongoose');
+
+const AnimeEntrySchema = new Schema({
+    mal_id: { type: Number, required: true },
+    title: { type: String, required: true },
+    image_url: { type: String },
+    type: { type: String },
+    episodes: { type: Number },
+    score: { type: Number },
+    status: {
+        type: String,
+        enum: ['watching', 'completed', 'on_hold', 'dropped', 'planned'],
+        required: true,
+        default: 'planned'
+    }
+}, { _id: false });
+
+
+const UserSchema = new Schema({
+    userId: { type: String, unique: true, required: true },
+    anime_list: [AnimeEntrySchema]
+});

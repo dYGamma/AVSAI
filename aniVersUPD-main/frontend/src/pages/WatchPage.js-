@@ -1,0 +1,63 @@
+import React, { useState, useEffect } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
+import api from '../api';
+import Loader from '../components/Loader';
+
+const WatchPage = () => {
+    const { id } = useParams();
+    const location = useLocation();
+    const [anime, setAnime] = useState(location.state?.animeDetails || null);
+    const [loading, setLoading] = useState(!anime);
+    const [selectedEpisode, setSelectedEpisode] = useState(1);
+
+    useEffect(() => {
+        if (!anime) {
+            const fetchAnime = async () => {
+                try {
+                    const { data } = await api.get(`/anime/${id}`);
+                    setAnime(data);
+                } catch (e) {
+                    console.error("Failed to fetch anime details", e);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            fetchAnime();
+        }
+    }, [id, anime]);
+
+    if (loading) return <Loader />;
+    if (!anime) return <p className="text-center mt-10">Не удалось загрузить информацию об аниме.</p>;
+
+    const playerUrl = `https:${anime.player_link}?shikimori_id=${id}&e=${selectedEpisode}`;
+
+    return (
+        <div className="p-4">
+            <h1 className="text-2xl font-bold mb-4">{anime.title} - Серия {selectedEpisode}</h1>
+            <div className="aspect-video mb-4">
+                <iframe
+                    src={playerUrl}
+                    frameBorder="0"
+                    allowFullScreen
+                    className="w-full h-full rounded-lg"
+                ></iframe>
+            </div>
+            <div>
+                <h2 className="font-bold mb-2">Эпизоды:</h2>
+                <div className="flex flex-wrap gap-2">
+                    {Array.from({ length: anime.episodes_total || 1 }, (_, i) => i + 1).map(ep => (
+                        <button
+                            key={ep}
+                            onClick={() => setSelectedEpisode(ep)}
+                            className={`px-3 py-1 rounded ${selectedEpisode === ep ? 'bg-brand-purple' : 'bg-dark-card'}`}
+                        >
+                            {ep}
+                        </button>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default WatchPage;
