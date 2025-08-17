@@ -1,0 +1,295 @@
+/* ./frontend/src/assets/styles/index.css */
+
+/* Подключаем Tailwind */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------
+   БАЗОВЫЕ СТИЛИ И МЕТА-ПОВЕДЕНИЕ
+   --------------------------- */
+
+/* Небольшие мобильные улучшения:
+   - отключаем авто-увеличение текста браузером
+   - разрешаем вертикальный скролл/жесты (pan-y)
+   - включаем плавную прокрутку для iOS
+*/
+html, body {
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  touch-action: pan-y;
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background-color: #111827; /* dark-bg */
+  color: #f9fafb;
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  margin: 0;
+  padding: 0;
+}
+
+/* Корневой контейнер для областей, где нужен safe-area (iPhone notch и т.п.) */
+.app-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Картинки, видео и iframe — не выходят за контейнер */
+img, svg, video, iframe {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Утилита для обрезки блоков по 3 строкам */
+@layer utilities {
+  .clamp-3 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+}
+
+/* Утилита для безопасной области у нижней навигации */
+.bottom-nav-safe {
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+/* Нативное поведение нажатий (лучше отклик на мобильных) */
+.touch-target {
+  -webkit-tap-highlight-color: rgba(0,0,0,0.12);
+  touch-action: manipulation;
+}
+
+/* Обрезка текста в одну строку с троеточием */
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------
+   ПРОФИЛЬ: COVER, AVATAR, GRID
+   --------------------------- */
+
+/* Обложка профиля — высота адаптивная */
+.profile-cover {
+  height: 11rem; /* мобильная высота */
+  position: relative;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+@media (min-width: 768px) {
+  .profile-cover { height: 16rem; }
+}
+
+/* Аватар (маленький на мобилке, крупный на десктопе) */
+.profile-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+@media (min-width: 768px) {
+  .profile-avatar { width: 144px; height: 144px; }
+}
+
+/* Сетка профиля: одна колонка на мобиле, две колонки на таблет/десктопе */
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 768px) {
+  .profile-grid {
+    grid-template-columns: 320px 1fr;
+    align-items: start;
+  }
+}
+
+/* "Карточки" на страницах (универсальный стиль) */
+.card {
+  background-color: #1F2937; /* dark-card */
+  padding: 1rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.02) inset;
+}
+@media (min-width: 768px) {
+  .card { padding: 1.25rem; }
+}
+
+/* Основной контейнер с запасом снизу под BottomNav */
+.main-with-bottom-space {
+  padding-bottom: 6.25rem;
+}
+@media (min-width: 768px) {
+  .main-with-bottom-space { padding-bottom: 1.25rem; }
+}
+
+/* Маленькие вспомогательные классы */
+.text-muted { color: #9CA3AF; } /* gray-400-ish */
+.flex-center { display: flex; align-items: center; justify-content: center; }
+
+/* ---------------------------
+   МОДАЛЬНЫЕ СНИЗУ (slide-up sheet)
+   --------------------------- */
+
+/* Анимация slide-up (используется в ProfileEditModal) */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-slide-up {
+  animation: slideUp 260ms cubic-bezier(.2,.9,.25,1);
+}
+
+/* Высокий z-index для модалки */
+.z-60 { z-index: 60; }
+
+/* "handle" — маленькая полоска вверху sheet */
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255,255,255,0.06);
+}
+
+/* Немного скруглений, чтоб казалось "примагничено" к навигации */
+@media (max-width: 767px) {
+  .fixed-bottom-sheet {
+    border-bottom-left-radius: 1rem;
+    border-bottom-right-radius: 1rem;
+  }
+}
+
+/* ---------------------------
+   Мелкие UI-правки (карточки, кнопки, строки)
+   --------------------------- */
+
+/* Превью аватара внутри формы редактирования */
+.avatar-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: #111827;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Кнопка выбора изображения (в модалке) */
+.file-select-btn {
+  background: rgba(0,0,0,0.5);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* Ссылки в профиле */
+.profile-link {
+  color: #C084FC; /* brand-purple-ish */
+  word-break: break-word;
+}
+
+/* Сетка друзей */
+.friends-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 0.5rem;
+}
+@media (min-width: 768px) {
+  .friends-grid { grid-template-columns: repeat(4, minmax(0,1fr)); }
+}
+
+/* ---------------------------
+   РЕЗЕРВ И ЗАЩИТА ОТ ВЫХОДА КОНТЕНТА
+   --------------------------- */
+
+/* Гарантируем, что overflow в карточках не ломает layout */
+.card img { display: block; max-width: 100%; height: auto; }
+
+/* Небольшие переходы для hover/active состояний */
+.transition-fast { transition: all 150ms ease; }
+
+/* ---------------------------
+   ДОПОЛНИТЕЛЬНЫЕ ПОЛЕЗНОСТИ
+   --------------------------- */
+
+/* Utility для маленьких значков/иконок внутри кнопок */
+.icon-sm { width: 18px; height: 18px; display: inline-block; vertical-align: middle; }
+
+/* Чтобы текстовые блоки нормально переносились внутри маленьких контейнеров */
+.break-words { word-wrap: break-word; word-break: break-word; }
+
+/* ---------------------------
+   СПЕЦИАЛЬНЫЕ СЕЛЕКТОРЫ ДЛЯ ОТЛАДКИ/DEV
+   --------------------------- */
+
+/* Удобно для временного выделения блоков при верстке */
+.debug-outline * { outline: 1px dashed rgba(255,0,0,0.06); }
+
+/* Sticker styles */
+.sticker-badge {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  right: -8px;
+  bottom: -8px;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(2,6,23,0.6);
+  background: white;
+  object-fit: contain;
+  padding: 4px;
+  border: 2px solid rgba(0,0,0,0.35);
+}
+
+.sticker-inline {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+}
+
+.sticker-small {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 4px;
+  object-fit: contain;
+  border: 1px solid rgba(0,0,0,0.4);
+  background: white;
+}
+
+/* Отключаем overscroll для тела при модалке */
+.app-safe-bottom {
+  padding-bottom: 6rem; /* учитываем нижнюю navigation bar если есть */
+}
+
+/* Стикер-инлайн (рядом с ником) */
+.sticker-inline {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+/* Маленькие стикеры у друзей */
+.sticker-small {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 4px;
+  object-fit: contain;
+  border: 1px solid rgba(0,0,0,0.4);
+  background: white;
+}
