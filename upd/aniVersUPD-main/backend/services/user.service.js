@@ -1,12 +1,15 @@
 // backend/services/user.service.js
 const UserModel = require('../models/user.model');
-// Переключаемся на bcryptjs — не требует нативной сборки
 const bcrypt = require('bcryptjs');
 const TokenService = require('./token.service');
 const UserDto = require('../dtos/user.dto');
 const ApiError = require('../exceptions/api.error');
+const mongoose = require('mongoose');
 
 class UserService {
+    /**
+     * Регистрация нового пользователя
+     */
     async register(email, password) {
         const normalizedEmail = String(email).trim().toLowerCase();
 
@@ -16,13 +19,14 @@ class UserService {
         }
 
         try {
-            const saltRounds = 10; // безопасный default
+            const saltRounds = 10;
             const hashPassword = await bcrypt.hash(password, saltRounds);
 
             const user = await UserModel.create({
                 email: normalizedEmail,
                 password: hashPassword,
-                anime_list: []
+                anime_list: [],
+                // можно позже добавить nickname, avatar_url, cover_url, social_links, friends и т.д.
             });
 
             const userDto = new UserDto(user);
@@ -36,6 +40,9 @@ class UserService {
         }
     }
 
+    /**
+     * Вход пользователя
+     */
     async login(email, password) {
         const normalizedEmail = String(email).trim().toLowerCase();
         console.log(`Login attempt for: ${normalizedEmail}`);
@@ -59,17 +66,22 @@ class UserService {
 
             return { ...tokens, user: userDto };
         } catch (err) {
-            // если bcrypt.compare выбросил что-то — логируем и возвращаем дружелюбную ошибку
             console.error('UserService.login error (compare/hash):', err);
             throw ApiError.BadRequest('Неверный логин или пароль');
         }
     }
 
+    /**
+     * Удаление refresh токена (logout)
+     */
     async logout(refreshToken) {
         const token = await TokenService.removeToken(refreshToken);
         return token;
     }
 
+    /**
+     * Обновление access/refresh токенов
+     */
     async refresh(refreshToken) {
         if (!refreshToken) {
             throw ApiError.UnauthorizedError();
@@ -80,6 +92,8 @@ class UserService {
             throw ApiError.UnauthorizedError();
         }
         const user = await UserModel.findById(userData.id);
+        if (!user) throw ApiError.UnauthorizedError();
+
         const userDto = new UserDto(user);
         const tokens = TokenService.generateTokens({ ...userDto });
         await TokenService.saveToken(userDto.id, tokens.refreshToken);
@@ -87,58 +101,101 @@ class UserService {
         return { ...tokens, user: userDto };
     }
 
-    // Методы для списков
+    /**
+     * Список аниме пользователя
+     */
     async getAnimeList(userId) {
         const user = await UserModel.findById(userId);
-        return user?.anime_list || [];
+        if (!user) throw ApiError.BadRequest('Пользователь не найден');
+        return user.anime_list || [];
     }
 
-    async updateAnimeStatus(userId, shikimori_id, status, animeData) {
+    /**
+     * Добавление / обновление аниме в списке пользователя
+     * animeData — объект с полями title, poster_url, episodes_total, и др.
+     */
+    async updateAnimeStatus(userId, shikimori_id, status, animeData = {}) {
         const user = await UserModel.findById(userId);
         if (!user) throw ApiError.BadRequest('Пользователь не найден');
 
-        const animeIndex = user.anime_list.findIndex(item => item.shikimori_id === shikimori_id);
+        const key = String(shikimori_id);
+        const animeIndex = user.anime_list.findIndex(item => String(item.shikimori_id) === key);
 
         if (animeIndex > -1) {
+            // Обновляем статус и, возможно, другую информацию
             user.anime_list[animeIndex].status = status;
+            if (animeData.title !== undefined) user.anime_list[animeIndex].title = animeData.title;
+            if (animeData.poster_url !== undefined) user.anime_list[animeIndex].poster_url = animeData.poster_url;
+            if (animeData.episodes_total !== undefined) user.anime_list[animeIndex].episodes_total = animeData.episodes_total;
+            // можно обновлять дополнительные поля по необходимости
         } else {
-            user.anime_list.push({ ...animeData, shikimori_id, status });
+            // Добавляем новый
+            user.anime_list.push({
+                shikimori_id: key,
+                title: animeData.title || '',
+                poster_url: animeData.poster_url || '',
+                episodes_total: animeData.episodes_total || 0,
+                status: status
+            });
         }
+
         await user.save();
         return user.anime_list;
     }
 
+    /**
+     * Удаление аниме из списка
+     */
     async removeAnimeFromList(userId, shikimori_id) {
         const user = await UserModel.findById(userId);
         if (!user) throw ApiError.BadRequest('Пользователь не найден');
 
-        user.anime_list = user.anime_list.filter(item => item.shikimori_id !== shikimori_id);
+        const key = String(shikimori_id);
+        user.anime_list = user.anime_list.filter(item => String(item.shikimori_id) !== key);
         await user.save();
         return user.anime_list;
     }
 
-    // Публичный профиль
+    /**
+     * Получение публичного профиля пользователя по id (populate friends)
+     */
     async getUserById(id) {
-        const user = await UserModel.findById(id).populate('friends', 'nickname avatar_url email sticker');
+        if (!id) throw ApiError.BadRequest('Не указан id пользователя');
+        if (!mongoose.Types.ObjectId.isValid(id)) throw ApiError.BadRequest('Неверный id пользователя');
+
+        // Если друзья хранятся как ObjectId, популяция даёт краткую информацию
+        const user = await UserModel.findById(id).populate('friends', 'nickname avatar_url email sticker').lean();
         if (!user) throw ApiError.BadRequest('Пользователь не найден');
         return user;
     }
 
+    /**
+     * Обновление профиля (nickname, bio, social_links, sticker, avatar_url, cover_url и т.д.)
+     * Публичные поля, которые можно обновлять, перечислены в контроллере.
+     */
     async updateProfile(userId, updates) {
         const user = await UserModel.findById(userId);
         if (!user) throw ApiError.BadRequest('Пользователь не найден');
 
-        if (updates.nickname !== undefined) user.nickname = updates.nickname;
-        if (updates.bio !== undefined) user.bio = updates.bio;
-        if (updates.avatar_url !== undefined) user.avatar_url = updates.avatar_url;
-        if (updates.cover_url !== undefined) user.cover_url = updates.cover_url;
-        if (updates.social_links !== undefined) user.social_links = updates.social_links;
-        if (updates.sticker !== undefined) user.sticker = updates.sticker;
+        // Поля, которые разрешаем обновлять
+        const allowed = ['nickname', 'bio', 'avatar_url', 'cover_url', 'social_links', 'sticker', 'theme', 'displayName'];
+        let changed = false;
+        for (const key of allowed) {
+            if (updates[key] !== undefined) {
+                user[key] = updates[key];
+                changed = true;
+            }
+        }
 
-        await user.save();
+        if (changed) {
+            await user.save();
+        }
         return user;
     }
 
+    /**
+     * Установить аватар пользователя (путь к файлу)
+     */
     async setAvatar(userId, avatarUrl) {
         const user = await UserModel.findById(userId);
         if (!user) throw ApiError.BadRequest('Пользователь не найден');
@@ -147,6 +204,9 @@ class UserService {
         return user;
     }
 
+    /**
+     * Установить обложку / фон пользователя (путь к файлу)
+     */
     async setCover(userId, coverUrl) {
         const user = await UserModel.findById(userId);
         if (!user) throw ApiError.BadRequest('Пользователь не найден');
@@ -155,63 +215,190 @@ class UserService {
         return user;
     }
 
-    // Друзья (простая логика)
+    /**
+     * Отправка заявки в друзья (упрощённо):
+     * Здесь реализуем простое поведение: добавляем fromUserId в массив incomingRequests у получателя
+     * либо сразу добавляем в friends (в зависимости от бизнес-логики). Для простоты — поместим в requests.
+     *
+     * NOTE: В твоей модели UserSchema должно быть поле friends (array) и/or friend_requests (array).
+     * Если их нет — методы будут добавлять в friends напрямую (по упрощённой логике).
+     */
     async sendFriendRequest(fromUserId, toUserId) {
+        if (!mongoose.Types.ObjectId.isValid(fromUserId) || !mongoose.Types.ObjectId.isValid(toUserId)) {
+            throw ApiError.BadRequest('Неверный id пользователя');
+        }
+
         const fromUser = await UserModel.findById(fromUserId);
         const toUser = await UserModel.findById(toUserId);
         if (!fromUser || !toUser) throw ApiError.BadRequest('Пользователь не найден');
 
-        if (toUser.friends.includes(fromUserId)) return toUser;
+        // Если уже в друзьях — ничего не делаем
+        const alreadyFriend = (toUser.friends || []).some(f => String(f) === String(fromUserId));
+        if (alreadyFriend) return toUser;
 
-        toUser.friends.push(fromUserId);
-        await toUser.save();
+        // Если в модели есть поле friend_requests — используем его, иначе просто пушим в friends (упрощённо)
+        if (Array.isArray(toUser.friend_requests)) {
+            const alreadyRequested = toUser.friend_requests.some(r => String(r) === String(fromUserId));
+            if (!alreadyRequested) {
+                toUser.friend_requests.push(fromUserId);
+                await toUser.save();
+            }
+        } else {
+            // Упрощение: сразу добавляем в friends как "mutual=false" — но без доп. полей
+            toUser.friends = toUser.friends || [];
+            if (!toUser.friends.some(f => String(f) === String(fromUserId))) {
+                toUser.friends.push(fromUserId);
+                await toUser.save();
+            }
+        }
+
         return toUser;
     }
 
+    /**
+     * Принять заявку в друзья — связываем оба пользователя
+     */
     async acceptFriend(userId, fromUserId) {
+        if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(fromUserId)) {
+            throw ApiError.BadRequest('Неверный id пользователя');
+        }
+
         const user = await UserModel.findById(userId);
         const fromUser = await UserModel.findById(fromUserId);
         if (!user || !fromUser) throw ApiError.BadRequest('Пользователь не найден');
 
-        if (!user.friends.includes(fromUserId)) user.friends.push(fromUserId);
-        if (!fromUser.friends.includes(userId)) fromUser.friends.push(userId);
+        user.friends = user.friends || [];
+        fromUser.friends = fromUser.friends || [];
+
+        if (!user.friends.some(f => String(f) === String(fromUserId))) user.friends.push(fromUserId);
+        if (!fromUser.friends.some(f => String(f) === String(userId))) fromUser.friends.push(userId);
+
+        // Если была заявка в friend_requests — убрать её
+        if (Array.isArray(user.friend_requests)) {
+            user.friend_requests = user.friend_requests.filter(r => String(r) !== String(fromUserId));
+        }
 
         await user.save();
         await fromUser.save();
         return user;
     }
 
+    /**
+     * Удалить друга
+     */
     async removeFriend(userId, friendId) {
+        if (!mongoose.Types.ObjectId.isValid(userId) || !mongoose.Types.ObjectId.isValid(friendId)) {
+            throw ApiError.BadRequest('Неверный id пользователя');
+        }
+
         const user = await UserModel.findById(userId);
         if (!user) throw ApiError.BadRequest('Пользователь не найден');
 
-        user.friends = user.friends.filter(f => f.toString() !== friendId.toString());
+        user.friends = (user.friends || []).filter(f => String(f) !== String(friendId));
         await user.save();
         return user;
     }
 
+    /**
+     * Статистика по списку пользователя
+     */
     async getStats(userId) {
         const user = await UserModel.findById(userId);
         if (!user) throw ApiError.BadRequest('Пользователь не найден');
 
+        const list = user.anime_list || [];
         const stats = {
-            total: user.anime_list.length,
-            watching: user.anime_list.filter(a => a.status === 'watching').length,
-            planned: user.anime_list.filter(a => a.status === 'planned').length,
-            completed: user.anime_list.filter(a => a.status === 'completed').length,
-            dropped: user.anime_list.filter(a => a.status === 'dropped').length,
-            on_hold: user.anime_list.filter(a => a.status === 'on_hold').length,
+            total: list.length,
+            watching: list.filter(a => a.status === 'watching').length,
+            planned: list.filter(a => a.status === 'planned').length,
+            completed: list.filter(a => a.status === 'completed').length,
+            dropped: list.filter(a => a.status === 'dropped').length,
+            on_hold: list.filter(a => a.status === 'on_hold').length,
         };
         return stats;
     }
 
-    // Заглушки — можно расширить
-    async getRecent(userId) {
-        return [];
+    /**
+     * Недавно просмотренное
+     * Поддерживает несколько возможных форм хранения:
+     * - user.watch_history = [{ shikimori_id, title, episode, at, player_link }]
+     * - user.recent = [...]
+     * - fallback: использует anime_list с last_watched_at если есть
+     */
+    async getRecent(userId, limit = 10) {
+        const user = await UserModel.findById(userId).lean();
+        if (!user) throw ApiError.BadRequest('Пользователь не найден');
+
+        // 1) Если есть watch_history — вернём последние записи
+        if (Array.isArray(user.watch_history) && user.watch_history.length > 0) {
+            const sorted = user.watch_history
+                .slice()
+                .sort((a, b) => new Date(b.at) - new Date(a.at));
+            return sorted.slice(0, limit);
+        }
+
+        // 2) Если есть recent — используем его
+        if (Array.isArray(user.recent) && user.recent.length > 0) {
+            return user.recent.slice(0, limit);
+        }
+
+        // 3) Фоллбек: проверим anime_list на поле last_watched_at
+        const candidates = (user.anime_list || [])
+            .filter(a => a.last_watched_at)
+            .map(a => ({ shikimori_id: a.shikimori_id, title: a.title, last_watched_at: a.last_watched_at }))
+            .sort((a, b) => new Date(b.last_watched_at) - new Date(a.last_watched_at))
+            .slice(0, limit);
+
+        return candidates;
     }
 
+    /**
+     * Динамика просмотров за последние N дней
+     * Использует watch_history (массив с полем at — timestamp). Возвращает массив { date, count }.
+     */
     async getDynamics(userId, days = 14) {
-        return [];
+        const user = await UserModel.findById(userId).lean();
+        if (!user) throw ApiError.BadRequest('Пользователь не найден');
+
+        // Если нет истории — возвращаем пустой период (нулевые значения)
+        if (!Array.isArray(user.watch_history) || user.watch_history.length === 0) {
+            // вернуть нулевой шаблон — удобный для фронта
+            const result = [];
+            const now = new Date();
+            for (let i = days - 1; i >= 0; i--) {
+                const d = new Date(now);
+                d.setDate(now.getDate() - i);
+                result.push({ date: d.toISOString().slice(0, 10), count: 0 });
+            }
+            return result;
+        }
+
+        // Считаем события по дате
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - (days - 1));
+        const map = new Map();
+
+        // Инициализация дат с 0
+        const now = new Date();
+        for (let i = 0; i < days; i++) {
+            const d = new Date();
+            d.setDate(now.getDate() - i);
+            const key = d.toISOString().slice(0, 10);
+            map.set(key, 0);
+        }
+
+        for (const ev of user.watch_history) {
+            if (!ev || !ev.at) continue;
+            const dateKey = new Date(ev.at).toISOString().slice(0, 10);
+            if (map.has(dateKey)) {
+                map.set(dateKey, map.get(dateKey) + 1);
+            }
+        }
+
+        // Формируем массив в хронологическом порядке (старые -> новые)
+        const keys = Array.from(map.keys()).sort();
+        const result = keys.map(k => ({ date: k, count: map.get(k) || 0 }));
+        return result;
     }
 }
 

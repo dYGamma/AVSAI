@@ -1,0 +1,448 @@
+/* ./frontend/src/assets/styles/index.css */
+
+/* Подключаем Tailwind */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------
+   CSS VARIABLES & THEME (Monochrome / muted greys)
+   --------------------------- */
+:root{
+  /* Основные тёмные фоны */
+  --bg-950: #050607;
+  --bg-900: #0b0f12;
+  --bg-850: #0f1418;
+  --card: #111418;
+  --card-2: #0f1519;
+
+  /* Монохромные акценты */
+  --muted-1: #9aa3ad; /* light muted */
+  --muted-2: #6b7280; /* darker muted */
+  --muted-3: #4b5563;
+
+  --text-main: #e6eef3; /* основной текст */
+  --text-dim: #b9c2cb;
+
+  --glass: rgba(255,255,255,0.02);
+  --soft-border: rgba(255,255,255,0.035);
+
+  /* Вместо цветного акцента — мягкий светло-серый градиент */
+  --accent: #cbd5dd;
+  --accent-2: #e6eef3;
+
+  --danger: #ef4444; /* оставил красный для ошибок */
+  --link: #c7cbd1; /* нейтральная ссылка */
+}
+
+/* ---------------------------
+   БАЗОВЫЕ СТИЛИ И МЕТА-ПОВЕДЕНИЕ
+   --------------------------- */
+
+/* Примечание:
+   Чтобы полностью запретить зум (pinch/zoom) на мобильных, можно добавить в <head>:
+   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+   Но учтите, это ухудшит доступность для пользователей с увеличением.
+*/
+
+/* Небольшие мобильные улучшения:
+   - отключаем авто-увеличение текста браузером
+   - разрешаем вертикальный скролл/жесты (pan-y) и минимизируем проваливание
+   - включаем плавную прокрутку для iOS
+*/
+html, body {
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  touch-action: pan-y;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  background-color: var(--bg-900);
+  background-image: linear-gradient(180deg, rgba(255,255,255,0.005), transparent);
+  color: var(--text-main);
+  font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  margin: 0;
+  padding: 0;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Utility to quickly disable page scroll when modal/sheet open:
+   Add class "no-scroll" to <body> from JS to lock scroll and touch gestures.
+*/
+body.no-scroll {
+  overflow: hidden !important;
+  touch-action: none !important;
+  height: 100%;
+  overscroll-behavior: none !important;
+}
+
+/* Корневой контейнер для safe-area */
+.app-safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Картинки, видео и iframe — не выходят за контейнер */
+img, svg, video, iframe {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Утилита для обрезки блоков по 3 строкам */
+@layer utilities {
+  .clamp-3 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+  }
+}
+
+/* Безопасная нижняя область */
+.bottom-nav-safe {
+  padding-bottom: calc(8px + env(safe-area-inset-bottom));
+}
+
+/* Нативное поведение нажатий */
+.touch-target {
+  -webkit-tap-highlight-color: rgba(0,0,0,0.12);
+  touch-action: manipulation;
+}
+
+/* Обрезка текста в одну строку с троеточием */
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------
+   ГЛАВНЫЕ UI ЭЛЕМЕНТЫ: cards, buttons, inputs
+   --------------------------- */
+
+/* Карточки */
+.card {
+  background: linear-gradient(180deg, var(--card), rgba(255,255,255,0.01));
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--soft-border);
+  box-shadow: 0 10px 30px rgba(2,6,23,0.6);
+  color: var(--text-main);
+}
+@media (min-width: 768px) {
+  .card { padding: 1.25rem; }
+}
+
+/* App-card — мягче */
+.app-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border: 1px solid var(--soft-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(2,6,23,0.6);
+}
+
+/* Buttons — единый стиль */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 600;
+  transition: transform .12s ease, box-shadow .12s ease, background-color .12s;
+  will-change: transform, box-shadow;
+  user-select: none;
+  cursor: pointer;
+  color: var(--text-main);
+  border: 1px solid transparent;
+}
+.btn:active { transform: translateY(1px); }
+
+/* Primary — монохромный градиент */
+.btn-primary {
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 120%);
+  color: #0b0f12;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+}
+.btn-primary:hover { transform: translateY(-2px); }
+
+/* Ghost — прозрачная кнопка */
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--soft-border);
+  color: var(--text-main);
+}
+.btn-ghost:hover {
+  background: rgba(255,255,255,0.01);
+}
+
+/* Тёмная кнопка без акцента */
+.btn-dark {
+  background: linear-gradient(180deg, var(--card-2), var(--card));
+  border: 1px solid var(--soft-border);
+  color: var(--text-main);
+}
+
+/* Inputs / selects */
+.input-glass {
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+  border: 1px solid var(--soft-border);
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--text-main);
+}
+
+/* ---------------------------
+   ПРОФИЛЬ: COVER, AVATAR, GRID
+   --------------------------- */
+
+.profile-cover {
+  height: 11rem;
+  position: relative;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+  border: 1px solid var(--soft-border);
+}
+@media (min-width: 768px) {
+  .profile-cover { height: 16rem; }
+}
+
+.profile-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+  border: 2px solid rgba(255,255,255,0.03);
+  background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
+}
+@media (min-width: 768px) {
+  .profile-avatar { width: 144px; height: 144px; }
+}
+
+/* Прячем badge внутри аватара — стикер должен быть рядом с ником */
+.profile-avatar .sticker-badge { display: none !important; }
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+@media (min-width: 768px) {
+  .profile-grid {
+    grid-template-columns: 320px 1fr;
+    align-items: start;
+  }
+}
+
+/* Основной контейнер с запасом снизу под BottomNav */
+.main-with-bottom-space {
+  padding-bottom: 6.25rem;
+}
+@media (min-width: 768px) {
+  .main-with-bottom-space { padding-bottom: 1.25rem; }
+}
+
+/* Малые вспомогательные */
+.text-muted { color: var(--muted-1); }
+.flex-center { display: flex; align-items: center; justify-content: center; }
+
+/* ---------------------------
+   МОДАЛЬНЫЕ СНИЗУ (slide-up sheet / bottom panel)
+   --------------------------- */
+
+/* Backdrop */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(2,6,23,0.6);
+  backdrop-filter: blur(6px);
+  z-index: 55;
+}
+
+/* Анимация slide-up */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-slide-up {
+  animation: slideUp 260ms cubic-bezier(.2,.9,.25,1);
+}
+
+/* Высокий z-index для модалки */
+.z-60 { z-index: 60; }
+
+/* "handle" — маленькая полоска вверху sheet */
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255,255,255,0.06);
+  margin: 6px auto;
+}
+
+/* Fixed bottom panel style (mobile) */
+.bottom-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  padding: 12px;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  border: 1px solid var(--soft-border);
+  background: linear-gradient(180deg, rgba(15,20,24,0.95), rgba(11,15,19,0.98));
+  box-shadow: 0 -10px 30px rgba(2,6,23,0.6);
+}
+
+/* На десктопе панель станет нефиксированной */
+@media (min-width: 768px) {
+  .bottom-panel {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    margin: 0 auto;
+    max-width: 700px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(2,6,23,0.6);
+  }
+}
+
+/* Немного скруглений, чтоб казалось "примагничено" к навигации */
+@media (max-width: 767px) {
+  .fixed-bottom-sheet {
+    border-bottom-left-radius: 1rem;
+    border-bottom-right-radius: 1rem;
+  }
+}
+
+/* ---------------------------
+   Мелкие UI-правки
+   --------------------------- */
+
+.avatar-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: var(--bg-850);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--soft-border);
+}
+
+.file-select-btn {
+  background: rgba(255,255,255,0.02);
+  color: var(--text-main);
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  border: 1px solid var(--soft-border);
+}
+
+.profile-link {
+  color: var(--link);
+  word-break: break-word;
+}
+
+.friends-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 0.5rem;
+}
+@media (min-width: 768px) {
+  .friends-grid { grid-template-columns: repeat(4, minmax(0,1fr)); }
+}
+
+/* ---------------------------
+   Переходы / Анимации helpers
+   --------------------------- */
+
+.transition-fast { transition: all 150ms ease; }
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+  100% { transform: translateY(0px); }
+}
+.float-slow { animation: float 6s ease-in-out infinite; }
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.fade-in-up { animation: fadeInUp 420ms cubic-bezier(.2,.9,.3,1) both; }
+
+@keyframes pulseAccent {
+  0% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+  70% { box-shadow: 0 0 0 12px rgba(0,0,0,0); }
+  100% { box-shadow: 0 0 0 0 rgba(0,0,0,0); }
+}
+.pulse-accent { animation: pulseAccent 1.8s infinite; }
+
+/* ---------------------------
+   Стикеры
+   --------------------------- */
+
+.sticker-badge {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  right: -8px;
+  bottom: -8px;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(2,6,23,0.6);
+  background: #fff;
+  object-fit: contain;
+  padding: 4px;
+  border: 2px solid rgba(0,0,0,0.12);
+  z-index: 6;
+}
+
+.sticker-inline {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.45);
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+
+.sticker-small {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 4px;
+  object-fit: contain;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: white;
+}
+
+/* ---------------------------
+   РЕЗЕРВ / ФИКСЫ
+   --------------------------- */
+
+.card img { display: block; max-width: 100%; height: auto; }
+
+.break-words { word-wrap: break-word; word-break: break-word; }
+
+.icon-sm { width: 18px; height: 18px; display: inline-block; vertical-align: middle; }
+
+.debug-outline * { outline: 1px dashed rgba(255,0,0,0.06); }
+
+/* Уменьшим z-index по умолчанию dropdown, чтобы не перекрывать sheet */
+.dropdown { z-index: 70; }
+
+/* Конец файла */
